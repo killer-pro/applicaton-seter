@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche d'ordinateurs</title>
+    <link rel="stylesheet" href="styles.css?timestamp=<%= Date.now() %>">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+</head>
+<body>
+    <h1>Trouvez Votre Ordinateur Idéal : Personnalisez et Économisez :</h1>
+    <div class="main">
+        <form id="searchForm">
+            <label for="budget" class="budget">Budget :</label>
+            <input type="number" name="budget" id="budget" min="0" placeholder="entrez votre budget (en euro &euro;) 😁"><br>
+            <button type="button" id="submitBtn">Rechercher</button>
+        </form>
+        <div id="results"></div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // Charger les options depuis le fichier unique_values.json
+            $.getJSON('unique_values.json', function(options) {
+                // Générer les sélecteurs à partir des valeurs uniques
+                for (const key in options) {
+                    if (key !== 'Price_euros') { 
+                        const select = $('<select>').attr('id', key);
+          
+                        const optionUndefined = $('<option>').attr('value', 'undefined').text('undefined');
+                        select.append(optionUndefined);
+          
+                        options[key].forEach(function(value) {
+                            const option = $('<option>').attr('value', value).text(value);
+                            select.append(option);
+                        });
+          
+                        $('#searchForm').append($('<label>').attr('for', key).text(key + ' :'));
+                        $('#searchForm').append(select);
+                    }
+                }
+          
+                // Charger les données des ordinateurs depuis le fichier pc_data.json
+                $.getJSON('pc_data.json', function(data) {
+                    var pc = data; 
+          
+                    // Gérer la soumission du formulaire
+                    $('#submitBtn').on('click', function() {
+                        // Obtenir les valeurs sélectionnées des selects
+                        var selectedValues = {};
+                        Object.keys(options).forEach(function(key) {
+                            if (key !== 'Price_euros') {
+                                var value = $('#' + key).val();
+                                if (value !== 'undefined') {
+                                    selectedValues[key] = value;
+                                }
+                            }
+                        });
+          
+                        // Filtrer les données en fonction des valeurs sélectionnées
+                        var filteredData = pc.filter(function(item) {
+                            return Object.keys(selectedValues).every(function(key) {
+                                return selectedValues[key] === undefined || item[key] == selectedValues[key];
+                            });
+                        });
+                        price=$("#budget").val()
+                        if(price){
+                          filteredData=filteredData.filter(function(item){
+                              return price>item.Price_euros;
+                          })
+                        }
+          
+                        // Afficher les 10 premiers ordinateurs qui correspondent aux critères
+                        var results = filteredData.slice(0, 10);
+                        var resultsContainer = $('#results');
+                        resultsContainer.empty();
+          
+                        const type_ordi=new Map([
+                          [0,"entre de gamme"],
+                          [1,"milieu de gamme"],
+                          [2,"haut de gamme"]
+                        ])
+          
+                        results.forEach(function(item) {
+                            var resultDiv = $('<div>').addClass('result');
+                            resultDiv.append($('<h1>').text(item.Company+": "));
+                            resultDiv.append($('<h2>').text(item.Produit));
+                            resultDiv.append($('<span>').text('  type: ' + item.TypeName));
+                            resultDiv.append($('<span>').text('  ram : ' + item.Ram));
+                            item.HDD?resultDiv.append($('<span>').text('  memoire HDD : ' + item.HDD+"GB , ")):"";
+                            item.SSD?resultDiv.append($('<span>').text('  memoire SSD : ' + item.SSD+"GB , ")):"";
+                            item.Flash_Storage?resultDiv.append($('<span>').text('  memoire SSD : ' + item.Flash_Storage+"GB , ")):"";
+                            resultDiv.append($('<span>').text(' taille : ' + item.Inches));
+                            resultDiv.append($('<span>').text(' processeur : ' +item.proc_compagnie+" " + item.proc_modele+" "));
+                            resultDiv.append($('<span>').text(item.proc_frequence+ "Ghz "));
+                            resultDiv.append($('<span>').text("systeme d'exploitation: "+item.os));
+                            resultDiv.append($('<span>').text(', Gpu : ' +item.gpu_compagnie+" " + item.gpu_modele+" "));
+                            resultDiv.append($('<span>').text(",Poids: "+item.Poids+"Kg"));
+                            resultDiv.append($('<h3>').text("classe: "+type_ordi.get(item.cluster)));
+                            resultDiv.append($('<h3>').html(' Prix : ' + item.Price_euros+"&euro;"));
+                            
+                            resultsContainer.append(resultDiv);
+                        });
+                    });
+                });
+            });
+          });
+    </script>
+
+</body>
+</html>
